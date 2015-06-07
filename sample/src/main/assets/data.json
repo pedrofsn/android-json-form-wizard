@@ -13,9 +13,9 @@
                 "hint":"Enter Your Email"
             },
             {
-                "key":"labelBackgroundImage",
-                "type":"label",
-                "text":"Choose Background Image"
+                "key":"capture_image",
+                "type":"capture_image",
+                "uploadButtonText":"test"
             },
             {
                 "key":"chooseImage",

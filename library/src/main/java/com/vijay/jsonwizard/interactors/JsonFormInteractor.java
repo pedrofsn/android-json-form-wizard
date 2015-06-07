@@ -19,6 +19,7 @@ import com.vijay.jsonwizard.interfaces.FormWidgetFactory;
 import com.vijay.jsonwizard.widgets.CheckBoxFactory;
 import com.vijay.jsonwizard.widgets.EditTextFactory;
 import com.vijay.jsonwizard.widgets.ImagePickerFactory;
+import com.vijay.jsonwizard.widgets.ImageTakeFactory;
 import com.vijay.jsonwizard.widgets.LabelFactory;
 import com.vijay.jsonwizard.widgets.RadioButtonFactory;
 import com.vijay.jsonwizard.widgets.SpinnerFactory;
@@ -28,9 +29,9 @@ import com.vijay.jsonwizard.widgets.SpinnerFactory;
  */
 public class JsonFormInteractor {
 
-    private static final String                     TAG               = "JsonFormInteractor";
-    private static final Map<String, FormWidgetFactory>    map = new HashMap<>();
-    private static final JsonFormInteractor         INSTANCE          = new JsonFormInteractor();
+    private static final String                             TAG         = "JsonFormInteractor";
+    private static final Map<String, FormWidgetFactory>     map         = new HashMap<>();
+    private static final JsonFormInteractor                 INSTANCE    = new JsonFormInteractor();
 
     private JsonFormInteractor() {
         registerWidgets();
@@ -42,6 +43,7 @@ public class JsonFormInteractor {
         map.put(JsonFormConstants.CHECK_BOX, new CheckBoxFactory());
         map.put(JsonFormConstants.RADIO_BUTTON, new RadioButtonFactory());
         map.put(JsonFormConstants.CHOOSE_IMAGE, new ImagePickerFactory());
+        map.put(JsonFormConstants.CAPTURE_IMAGE, new ImageTakeFactory());
         map.put(JsonFormConstants.SPINNER, new SpinnerFactory());
     }
 

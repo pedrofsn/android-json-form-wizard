@@ -1,15 +1,11 @@
 package com.vijay.jsonwizard.presenters;
 
-import java.util.List;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.view.View;
 import android.widget.AdapterView;
@@ -28,16 +24,27 @@ import com.vijay.jsonwizard.mvp.MvpBasePresenter;
 import com.vijay.jsonwizard.views.JsonFormFragmentView;
 import com.vijay.jsonwizard.viewstates.JsonFormFragmentViewState;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+
 /**
  * Created by vijay on 5/14/15.
  */
 public class JsonFormFragmentPresenter extends MvpBasePresenter<JsonFormFragmentView<JsonFormFragmentViewState>> {
-    private static final String TAG                 = "FormFragmentPresenter";
-    private static final int    RESULT_LOAD_IMG     = 1;
-    private String              mStepName;
-    private JSONObject          mStepDetails;
-    private String              mCurrentKey;
-    private JsonFormInteractor  mJsonFormInteractor = JsonFormInteractor.getInstance();
+    private static final String TAG = "FormFragmentPresenter";
+    private static final int RESULT_LOAD_IMG = 1;
+    private static final int REQUEST_IMAGE_CAPTURE = 2;
+    String mCurrentPhotoPath;
+    private String mStepName;
+    private JSONObject mStepDetails;
+    private String mCurrentKey;
+    private JsonFormInteractor mJsonFormInteractor = JsonFormInteractor.getInstance();
 
     public void addFormElements() {
         mStepName = getView().getArguments().getString("stepName");
@@ -107,31 +114,69 @@ public class JsonFormFragmentPresenter extends MvpBasePresenter<JsonFormFragment
         getView().finishWithResult(returnIntent);
     }
 
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == RESULT_LOAD_IMG && resultCode == Activity.RESULT_OK && null != data) {
-            Uri selectedImage = data.getData();
-            String[] filePathColumn = { MediaStore.Images.Media.DATA };
-            // No need for null check on cursor
-            Cursor cursor = getView().getContext().getContentResolver()
-                    .query(selectedImage, filePathColumn, null, null, null);
-            cursor.moveToFirst();
+    private File createImageFile() throws IOException {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                ".jpg",         /* suffix */
+                storageDir      /* directory */
+        );
 
-            int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
-            String imagePath = cursor.getString(columnIndex);
-            getView().updateRelevantImageView(BitmapFactory.decodeFile(imagePath), imagePath, mCurrentKey);
-            cursor.close();
+        // Save a file: path for use with ACTION_VIEW intents
+        mCurrentPhotoPath = "file:" + image.getAbsolutePath();
+        return image;
+    }
+
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == Activity.RESULT_OK) {
+            switch (requestCode) {
+                case RESULT_LOAD_IMG:
+                    if (null != data) {
+                        Uri selectedImage = data.getData();
+                        String[] filePathColumn = {MediaStore.Images.Media.DATA};
+                        // No need for null check on cursor
+                        Cursor cursor = getView().getContext().getContentResolver()
+                                .query(selectedImage, filePathColumn, null, null, null);
+                        cursor.moveToFirst();
+
+                        int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
+                        String imagePath = cursor.getString(columnIndex);
+                        getView().updateRelevantImageView(BitmapFactory.decodeFile(imagePath), imagePath, mCurrentKey);
+                        cursor.close();
+                    }
+                    break;
+                case REQUEST_IMAGE_CAPTURE:
+                    getView().updateRelevantImageView(BitmapFactory.decodeFile(mCurrentPhotoPath), mCurrentPhotoPath, mCurrentKey);
+                    break;
+            }
         }
     }
 
     public void onClick(View v) {
         String key = (String) v.getTag(R.id.key);
         String type = (String) v.getTag(R.id.type);
-        if (JsonFormConstants.CHOOSE_IMAGE.equals(type)) {
+        if (JsonFormConstants.CAPTURE_IMAGE.equals(type)) {
             getView().hideKeyBoard();
-            Intent galleryIntent = new Intent(Intent.ACTION_PICK,
-                    android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             mCurrentKey = key;
-            getView().startActivityForResult(galleryIntent, RESULT_LOAD_IMG);
+            dispatchTakePictureIntent();
+        }
+    }
+
+    private void dispatchTakePictureIntent() {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        File file = null;
+        try {
+            file = createImageFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (file != null) {
+            takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT,
+                    Uri.fromFile(file));
+            getView().startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
         }
     }
 
